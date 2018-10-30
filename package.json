@@ -1,0 +1,32 @@
+{
+  "name": "api-gym",
+  "version": "1.0.0",
+  "description": "API",
+  "main": "App.js",
+  "scripts": {
+    "start": "node App.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HamedMohsenavi/API-GYM.git"
+  },
+  "keywords": [
+    "API",
+    "GYM",
+    "API-GYM"
+  ],
+  "author": "HamedMohsenavi",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/HamedMohsenavi/API-GYM/issues"
+  },
+  "homepage": "https://github.com/HamedMohsenavi/API-GYM#readme",
+  "devDependencies": {
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-node": "^7.0.1",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "standard": "^12.0.1"
+  }
+}
