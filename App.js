@@ -4,6 +4,17 @@ const URL = require('url');
 const { StringDecoder } = require('string_decoder');
 const Decoder = new StringDecoder('utf8');
 
+// Core
+const Config = require('./Core/Config');
+
+/* TODO: TEST
+    const Database = require('./Core/Database');
+    Database.Create('Test', 'NewFile, { 'Id': '1' }, Error => console.log(Error));
+    Database.Update('Test', 'NewFile, { 'Id': '2' }, Error => console.log(Error));
+    Database.Delete('Test', 'NewFile, Error => console.log(Error));
+    Database.Read('Test', 'NewFile', (Error, Data) => console.log(Error, Data));
+*/
+
 // Define all the handlers
 let Handler = { };
 
@@ -80,4 +91,4 @@ HTTP.createServer((Request, Response) =>
             console.log(StatusCode, PayloadString);
         });
     });
-}).listen(3000, () => console.log('Server Running on Port: 3000'));
+}).listen(Config.Port, () => console.log(`Server Running on Port: ${Config.Port} -- Mode: ${Config.Name}`));
