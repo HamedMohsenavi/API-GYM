@@ -2,6 +2,9 @@
 const FileSystem = require('fs');
 const Path = require('path');
 
+// Core
+const Helper = require('./Helper');
+
 let Database = { };
 
 Database.BaseDirectory = Path.join(__dirname, '/../.Database');
@@ -91,7 +94,10 @@ Database.Read = (Directory, FileName, Callback) =>
 {
     FileSystem.readFile(`${Database.BaseDirectory}/${Directory}/${FileName}.json`, 'utf8', (Error, Data) =>
     {
-        Callback(Error, Data);
+        if (!Error && Data)
+            Callback(false, Helper.ParseJsonToObject(Data));
+        else
+            Callback(Error, Data);
     });
 };
 
