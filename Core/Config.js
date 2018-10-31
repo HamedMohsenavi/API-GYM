@@ -3,13 +3,15 @@ let Environments = { };
 Environments.Staging =
 {
     Port: 3000,
-    Name: 'Staging'
+    Name: 'Staging',
+    Hash: 'Secret'
 };
 
 Environments.Production =
 {
     Port: 4000,
-    Name: 'Production'
+    Name: 'Production',
+    Hash: 'Secret'
 };
 
 // Detewemine which enviroment was passed as a command-line argument

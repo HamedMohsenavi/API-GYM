@@ -6,34 +6,13 @@ const Decoder = new StringDecoder('utf8');
 
 // Core
 const Config = require('./Core/Config');
-
-/* TODO: TEST
-    const Database = require('./Core/Database');
-    Database.Create('Test', 'NewFile, { 'Id': '1' }, Error => console.log(Error));
-    Database.Update('Test', 'NewFile, { 'Id': '2' }, Error => console.log(Error));
-    Database.Delete('Test', 'NewFile, Error => console.log(Error));
-    Database.Read('Test', 'NewFile', (Error, Data) => console.log(Error, Data));
-*/
-
-// Define all the handlers
-let Handler = { };
-
-// Handlers
-Handler.Api = (Data, Callback) =>
-{
-    Callback(406, { 'Api': 'Gym' });
-};
-
-// Not found handlers
-Handler.NotFound = (Data, Callback) =>
-{
-    Callback(404, { '404': 'Page Not Found' });
-};
+const Handler = require('./Core/Handler');
+const Helper = require('./Core/Helper');
 
 // Define the request router
 let Router =
 {
-    Api: Handler.Api
+    Account: Handler.Account
 };
 
 HTTP.createServer((Request, Response) =>
@@ -70,7 +49,7 @@ HTTP.createServer((Request, Response) =>
         let Routers = typeof (Router[TrimeedPath]) !== 'undefined' ? Router[TrimeedPath] : Handler.NotFound;
 
         // Construct the data object to send the handler
-        let Data = { TrimeedPath, QueryString, Method, Headers, __Buffer };
+        let Data = { TrimeedPath, QueryString, Method, Headers, Payload: Helper.ParseJsonToObject(__Buffer) };
 
         // Route the request to the handler specified in the router
         Routers(Data, (StatusCode, Payload) =>
