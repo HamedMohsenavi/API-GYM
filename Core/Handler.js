@@ -7,11 +7,12 @@ let Handler = { };
 Handler._Account = { };
 Handler._Token = { };
 
+// Request methods
+const Method = ['POST', 'GET', 'PUT', 'DELETE'];
+
 // Account Handler
 Handler.Account = (Data, Callback) =>
 {
-    let Method = ['POST', 'GET', 'PUT', 'DELETE'];
-
     if (Method.indexOf(Data.Method) > -1)
         Handler._Account[Data.Method](Data, Callback);
     else
@@ -21,8 +22,6 @@ Handler.Account = (Data, Callback) =>
 // Token Handler
 Handler.Token = (Data, Callback) =>
 {
-    let Method = ['POST', 'GET', 'PUT', 'DELETE'];
-
     if (Method.indexOf(Data.Method) > -1)
         Handler._Token[Data.Method](Data, Callback);
     else
@@ -37,11 +36,11 @@ Handler.Token = (Data, Callback) =>
 Handler._Account.POST = (Data, Callback) =>
 {
     // Check the all Required fields are filled out
-    let FirstName = typeof (Data.Payload.FirstName) === 'string' && Data.Payload.FirstName.trim().length > 0 ? Data.Payload.FirstName.trim() : false;
-    let LastName = typeof (Data.Payload.LastName) === 'string' && Data.Payload.LastName.trim().length > 0 ? Data.Payload.LastName.trim() : false;
-    let Phone = typeof (Data.Payload.Phone) === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone.trim() : false;
-    let Password = typeof (Data.Payload.Password) === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password.trim() : false;
-    let TosAgreement = !!(typeof (Data.Payload.TosAgreement) === 'boolean' && Data.Payload.TosAgreement === true);
+    const FirstName = typeof Data.Payload.FirstName === 'string' && Data.Payload.FirstName.trim().length > 0 ? Data.Payload.FirstName.trim() : false;
+    const LastName = typeof Data.Payload.LastName === 'string' && Data.Payload.LastName.trim().length > 0 ? Data.Payload.LastName.trim() : false;
+    const Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone.trim() : false;
+    const Password = typeof Data.Payload.Password === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password.trim() : false;
+    const TosAgreement = !!(typeof Data.Payload.TosAgreement === 'boolean' && Data.Payload.TosAgreement === true);
 
     if (FirstName && LastName && Phone && Password && TosAgreement)
     {
@@ -84,12 +83,12 @@ Handler._Account.POST = (Data, Callback) =>
 Handler._Account.GET = (Data, Callback) =>
 {
     // Required data
-    let Phone = typeof Data.QueryString.Phone === 'string' && Data.QueryString.Phone.trim().length === 11 ? Data.QueryString.Phone.trim() : false;
+    const Phone = typeof Data.QueryString.Phone === 'string' && Data.QueryString.Phone.trim().length === 11 ? Data.QueryString.Phone.trim() : false;
 
     if (Phone)
     {
         // Get the token from headers
-        let Token = typeof Data.Headers.token === 'string' ? Data.Headers.token : false;
+        const Token = typeof Data.Headers.token === 'string' ? Data.Headers.token : false;
 
         // Verify that the given token is valid for the phone number
         Handler._Token.Verify(Token, Phone, TokenIsValid =>
@@ -124,19 +123,19 @@ Handler._Account.GET = (Data, Callback) =>
 Handler._Account.PUT = (Data, Callback) =>
 {
     // Required data
-    let Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone.trim() : false;
+    const Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone.trim() : false;
 
     // Check the optional fields
-    let FirstName = typeof (Data.Payload.FirstName) === 'string' && Data.Payload.FirstName.trim().length > 0 ? Data.Payload.FirstName.trim() : false;
-    let LastName = typeof (Data.Payload.LastName) === 'string' && Data.Payload.LastName.trim().length > 0 ? Data.Payload.LastName.trim() : false;
-    let Password = typeof (Data.Payload.Password) === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password.trim() : false;
+    const FirstName = typeof Data.Payload.FirstName === 'string' && Data.Payload.FirstName.trim().length > 0 ? Data.Payload.FirstName.trim() : false;
+    const LastName = typeof Data.Payload.LastName === 'string' && Data.Payload.LastName.trim().length > 0 ? Data.Payload.LastName.trim() : false;
+    const Password = typeof Data.Payload.Password === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password.trim() : false;
 
     if (Phone)
     {
         if (FirstName || LastName || Password)
         {
             // Get the token from headers
-            let Token = typeof Data.Headers.token === 'string' ? Data.Headers.token : false;
+            const Token = typeof Data.Headers.token === 'string' ? Data.Headers.token : false;
 
             // Verify that the given token is valid for the phone number
             Handler._Token.Verify(Token, Phone, TokenIsValid =>
@@ -208,7 +207,7 @@ Handler._Account.DELETE = (Data, Callback) =>
                         Database.Delete('Accounts', Phone, Error =>
                         {
                             if (!Error)
-                                Callback(200, { 'Successfully': 'account deleted successfully' });
+                                Callback(200, { 'Successfully': 'Account deleted successfully' });
                             else
                                 Callback(500, { 'Error': 'Could not delete the account' }); // 500 Internal Server Error
                         });
@@ -233,8 +232,8 @@ Handler._Account.DELETE = (Data, Callback) =>
 Handler._Token.POST = (Data, Callback) =>
 {
     // Required data
-    let Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone.trim() : false;
-    let Password = typeof Data.Payload.Password === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password.trim() : false;
+    const Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone.trim() : false;
+    const Password = typeof Data.Payload.Password === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password.trim() : false;
 
     if (Phone && Password)
     {
@@ -300,8 +299,8 @@ Handler._Token.GET = (Data, Callback) =>
 Handler._Token.PUT = (Data, Callback) =>
 {
     // Required data
-    let Token = typeof Data.Payload.Token === 'string' && Data.Payload.Token.trim().length === 15 ? Data.Payload.Token.trim() : false;
-    let Extend = !!(typeof Data.Payload.Extend === 'boolean' && Data.Payload.Extend === true);
+    const Token = typeof Data.Payload.Token === 'string' && Data.Payload.Token.trim().length === 15 ? Data.Payload.Token.trim() : false;
+    const Extend = !!(typeof Data.Payload.Extend === 'boolean' && Data.Payload.Extend === true);
 
     if (Token && Extend)
     {
@@ -341,7 +340,7 @@ Handler._Token.PUT = (Data, Callback) =>
 Handler._Token.DELETE = (Data, Callback) =>
 {
     // Required data
-    let Token = typeof Data.QueryString.Token === 'string' && Data.QueryString.Token.trim().length === 15 ? Data.QueryString.Token.trim() : false;
+    const Token = typeof Data.QueryString.Token === 'string' && Data.QueryString.Token.trim().length === 15 ? Data.QueryString.Token.trim() : false;
 
     if (Token)
     {
@@ -352,13 +351,13 @@ Handler._Token.DELETE = (Data, Callback) =>
                 Database.Delete('Tokens', Token, Error =>
                 {
                     if (!Error)
-                        Callback(200, { 'Successfully': 'token deleted successfully' });
+                        Callback(200, { 'Successfully': 'Token deleted successfully' });
                     else
                         Callback(500, { 'Error': 'Could not delete the account' }); // 500 Internal Server Error
                 });
             }
             else
-                Callback(404, { 'Error': 'token Not Found' }); // 404 Page Not Found
+                Callback(404, { 'Error': 'Token Not Found' }); // 404 Page Not Found
         });
     }
     else
