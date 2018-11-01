@@ -6,7 +6,6 @@ const Config = require('./Config');
 
 let Helper = { };
 
-// Create a SHA256 hash
 Helper.Hash = (Value) =>
 {
     if (typeof Value === 'string' && Value.length > 0)
@@ -25,6 +24,24 @@ Helper.ParseJsonToObject = (Value) =>
     {
         return { };
     }
+};
+
+Helper.RandomString = (Length) =>
+{
+    Length = typeof Length === 'number' && Length > 0 ? Length : false;
+
+    if (Length)
+    {
+        const Possible = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let Result = '';
+
+        for (let I = 0; I <= Length; I++)
+            Result += Possible.charAt(Math.floor(Math.random() * Possible.length));
+
+        return Result;
+    }
+
+    return false;
 };
 
 module.exports = Helper;
