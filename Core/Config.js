@@ -4,14 +4,16 @@ Environments.Staging =
 {
     Port: 3000,
     Name: 'Staging',
-    Hash: 'Secret'
+    Hash: 'Secret',
+    MaxChecks: 5
 };
 
 Environments.Production =
 {
     Port: 4000,
     Name: 'Production',
-    Hash: 'Secret'
+    Hash: 'Secret',
+    MaxChecks: 5
 };
 
 // Detewemine which enviroment was passed as a command-line argument

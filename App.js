@@ -13,7 +13,8 @@ const Helper = require('./Core/Helper');
 let Router =
 {
     Account: Handler.Account,
-    Token: Handler.Token
+    Token: Handler.Token,
+    Check: Handler.Check
 };
 
 HTTP.createServer((Request, Response) =>

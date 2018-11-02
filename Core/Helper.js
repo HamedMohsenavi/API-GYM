@@ -35,7 +35,7 @@ Helper.RandomString = (Length) =>
         const Possible = 'abcdefghijklmnopqrstuvwxyz0123456789';
         let Result = '';
 
-        for (let I = 0; I <= Length; I++)
+        for (let I = 0; I < Length; I++)
             Result += Possible.charAt(Math.floor(Math.random() * Possible.length));
 
         return Result;
