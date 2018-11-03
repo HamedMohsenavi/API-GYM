@@ -56,7 +56,7 @@ Handler._Account.POST = (Data, Callback) =>
     if (FirstName && LastName && Phone && Password && TosAgreement)
     {
         // Make sure that the user dosent already exist
-        Database.Read('Accounts', Phone, (Error, Data) =>
+        Database.Read('Accounts', Phone, (Error, AccountData) =>
         {
             if (Error)
             {
@@ -106,16 +106,16 @@ Handler._Account.GET = (Data, Callback) =>
         {
             if (TokenIsValid)
             {
-                Database.Read('Accounts', Phone, (Error, Data) =>
+                Database.Read('Accounts', Phone, (Error, AccountData) =>
                 {
-                    if (!Error && Data)
+                    if (!Error && AccountData)
                     {
-                        delete Data.HashedPassword;
+                        delete AccountData.HashedPassword;
 
-                        Callback(200, Data);
+                        Callback(200, AccountData);
                     }
                     else
-                        Callback(404, { 'Error': 'Account Not Found' }); // 404 Page Not Found
+                        Callback(400, { 'Error': 'Account Not Found' }); // 400 Bad Request
                 });
             }
             else
@@ -153,21 +153,21 @@ Handler._Account.PUT = (Data, Callback) =>
             {
                 if (TokenIsValid)
                 {
-                    Database.Read('Accounts', Phone, (Error, Data) =>
+                    Database.Read('Accounts', Phone, (Error, AccountData) =>
                     {
-                        if (!Error && Data)
+                        if (!Error && AccountData)
                         {
                             if (FirstName)
-                                Data.FirstName = FirstName;
+                                AccountData.FirstName = FirstName;
 
                             if (LastName)
-                                Data.LastName = LastName;
+                                AccountData.LastName = LastName;
 
                             if (Password)
-                                Data.HashedPassword = Helper.Hash(Password);
+                                AccountData.HashedPassword = Helper.Hash(Password);
 
                             // Store the new update
-                            Database.Update('Accounts', Phone, Data, Error =>
+                            Database.Update('Accounts', Phone, AccountData, Error =>
                             {
                                 if (!Error)
                                     Callback(200, { 'Successfully': `Account Updated` }); // 200 OK
@@ -176,7 +176,7 @@ Handler._Account.PUT = (Data, Callback) =>
                             });
                         }
                         else
-                            Callback(404, { 'Error': 'Account Not Found' }); // 404 Page Not Found
+                            Callback(400, { 'Error': 'Account Not Found' }); // 400 Bad Request
                     });
                 }
                 else
@@ -210,19 +210,18 @@ Handler._Account.DELETE = (Data, Callback) =>
         {
             if (TokenIsValid)
             {
-                Database.Read('Accounts', Phone, (Error, Data) =>
+                Database.Read('Accounts', Phone, (Error, AccountData) =>
                 {
-                    if (!Error && Data)
+                    if (!Error && AccountData)
                     {
                         Database.Delete('Accounts', Phone, Error =>
                         {
                             if (!Error)
                             {
                                 // Delete each of the checks associated with the account
-                                const AccountCheck = typeof Data.Check === 'object' && Data.Check instanceof Array ? Data.Check : [ ];
-                                let ChecksToDelete = AccountCheck.length;
+                                const AccountCheck = typeof AccountData.Check === 'object' && AccountData.Check instanceof Array ? AccountData.Check : [ ];
 
-                                if (ChecksToDelete > 0)
+                                if (AccountCheck.length > 0)
                                 {
                                     let Count = 0;
                                     let Errors = false;
@@ -236,26 +235,25 @@ Handler._Account.DELETE = (Data, Callback) =>
 
                                             Count++;
 
-                                            if (Count === ChecksToDelete)
+                                            if (Count === AccountCheck.length)
                                             {
                                                 if (!Errors)
-                                                    Callback(200);
+                                                    Callback(200, { 'Successfully': `The check was successfully deleted` }); // 200 OK
                                             }
                                             else
                                                 Callback(500, { 'Error': 'Errors encountered while attempting to delete all of the account checks' });
-
                                         });
                                     });
                                 }
                                 else
-                                    Callback(200);
+                                    Callback(200, { 'Successfully': `The account was successfully deleted` }); // 200 OK
                             }
                             else
                                 Callback(500, { 'Error': 'Could not delete the account' }); // 500 Internal Server Error
                         });
                     }
                     else
-                        Callback(404, { 'Error': 'Account Not Found' }); // 404 Page Not Found
+                        Callback(400, { 'Error': 'Account Not Found' }); // 400 Bad Request
                 });
             }
             else
@@ -279,13 +277,13 @@ Handler._Token.POST = (Data, Callback) =>
 
     if (Phone && Password)
     {
-        Database.Read('Accounts', Phone, (Error, Data) =>
+        Database.Read('Accounts', Phone, (Error, AccountData) =>
         {
-            if (!Error && Data)
+            if (!Error && AccountData)
             {
                 let HashedPassword = Helper.Hash(Password);
 
-                if (HashedPassword === Data.HashedPassword)
+                if (HashedPassword === AccountData.HashedPassword)
                 {
                     let TokenObject = { Phone, Token: Helper.RandomString(15), Expire: Date.now() + 1000 * 60 * 60 };
 
@@ -321,12 +319,12 @@ Handler._Token.GET = (Data, Callback) =>
 
     if (Token)
     {
-        Database.Read('Tokens', Token, (Error, Data) =>
+        Database.Read('Tokens', Token, (Error, TokenData) =>
         {
-            if (!Error && Data)
-                Callback(200, Data);
+            if (!Error && TokenData)
+                Callback(200, TokenData);
             else
-                Callback(404, { 'Error': 'Token Not Found' }); // 404 Page Not Found
+                Callback(400, { 'Error': 'Token Not Found' }); // 400 Bad Request
         });
     }
     else
@@ -346,13 +344,13 @@ Handler._Token.PUT = (Data, Callback) =>
 
     if (Token && Extend)
     {
-        Database.Read('Tokens', Token, (Error, Data) =>
+        Database.Read('Tokens', Token, (Error, TokenData) =>
         {
-            if (!Error && Data)
+            if (!Error && TokenData)
             {
-                if (Data.Expire > Date.now())
+                if (TokenData.Expire > Date.now())
                 {
-                    Data.Expire = Date.now() * 1000 * 60 * 60;
+                    TokenData.Expire = Date.now() * 1000 * 60 * 60;
 
                     // Store the new updates
                     Database.Update('Tokens', Token, Error =>
@@ -386,9 +384,9 @@ Handler._Token.DELETE = (Data, Callback) =>
 
     if (Token)
     {
-        Database.Read('Tokens', Token, (Error, Data) =>
+        Database.Read('Tokens', Token, (Error, TokenData) =>
         {
-            if (!Error && Data)
+            if (!Error && TokenData)
             {
                 Database.Delete('Tokens', Token, Error =>
                 {
@@ -399,7 +397,7 @@ Handler._Token.DELETE = (Data, Callback) =>
                 });
             }
             else
-                Callback(404, { 'Error': 'Token Not Found' }); // 404 Page Not Found
+                Callback(400, { 'Error': 'Token Not Found' }); // 400 Bad Request
         });
     }
     else
@@ -409,11 +407,11 @@ Handler._Token.DELETE = (Data, Callback) =>
 // Verify if a given token id is currently valid for a given account
 Handler._Token.Verify = (Token, Phone, Callback) =>
 {
-    Database.Read('Tokens', Token, (Error, Data) =>
+    Database.Read('Tokens', Token, (Error, TokenData) =>
     {
-        if (!Error && Data)
+        if (!Error && TokenData)
         {
-            if (Data.Phone === Phone && Data.Expire > Date.now())
+            if (TokenData.Phone === Phone && TokenData.Expire > Date.now())
                 Callback(true);
             else
                 Callback(false);
@@ -444,11 +442,11 @@ Handler._Check.POST = (Data, Callback) =>
         // Get the token from headers
         const Token = typeof Data.Headers.token === 'string' ? Data.Headers.token : false;
 
-        Database.Read('Tokens', Token, (Error, Data) =>
+        Database.Read('Tokens', Token, (Error, TokenData) =>
         {
-            if (!Error && Data)
+            if (!Error && TokenData)
             {
-                const Phone = Data.Phone;
+                const Phone = TokenData.Phone;
 
                 Database.Read('Accounts', Phone, (Error, AccountData) =>
                 {
@@ -487,7 +485,7 @@ Handler._Check.POST = (Data, Callback) =>
                             Callback(400, { 'Error': `The account already has the maximum number of checks (${Config.MaxChecks})` }); // 400 Bad Request
                     }
                     else
-                        Callback(404, { 'Error': 'Account Not Found' }); // 404 Page Not Found
+                        Callback(400, { 'Error': 'Account Not Found' }); // 400 Bad Request
                 });
             }
             else
@@ -527,7 +525,7 @@ Handler._Check.GET = (Data, Callback) =>
                 });
             }
             else
-                Callback(404, { 'Error': 'Check id Not Found' }); // 404 Page Not Found
+                Callback(400, { 'Error': 'Check id Not Found' }); // 400 Bad Request
         });
     }
     else
@@ -641,7 +639,7 @@ Handler._Check.DELETE = (Data, Callback) =>
                                     {
                                         const AccountCheck = typeof AccountData.Check === 'object' && AccountData.Check instanceof Array ? AccountData.Check : [ ];
                                         let CheckPosition = AccountCheck.indexOf(CheckID);
-                                        
+
                                         if (CheckPosition > -1)
                                         {
                                             AccountCheck.splice(CheckPosition, 1);
@@ -650,7 +648,7 @@ Handler._Check.DELETE = (Data, Callback) =>
                                             Database.Update('Accounts', CheckData.Phone, AccountData, Error =>
                                             {
                                                 if (!Error)
-                                                    Callback(200);
+                                                    Callback(200, { 'Successfully': `Check deleted from account ${CheckData.Phone}` }); // 200 OK
                                                 else
                                                     Callback(500, { 'Error': 'Could not update the account' }); // 500 Internal Server Error
                                             });
