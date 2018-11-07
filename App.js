@@ -1,32 +1,43 @@
 // Node Native
-const HTTP = require('http');
-const URL = require('url');
+const http = require('http');
+const https = require('https');
+const url = require('url');
+const fs = require('fs');
 const { StringDecoder } = require('string_decoder');
 const Decoder = new StringDecoder('utf8');
 
-// Core
-const Config = require('./Core/Config');
-const Handler = require('./Core/Handler');
-const Helper = require('./Core/Helper');
+// Api router
+const Router = require('./App/Api/Router');
 
-// Define the request router
-let Router =
+// Core
+const Config = require('./App/Core/Config');
+const Helper = require('./App/Core/Helper');
+
+// HTTPS Server Options
+const Options =
 {
-    Account: Handler.Account,
-    Token: Handler.Token,
-    Check: Handler.Check
+    Key: fs.readFileSync('./Storage/HTTPS/Key.pem'),
+    Cert: fs.readFileSync('./Storage/HTTPS/Cert.pem')
 };
 
-HTTP.createServer((Request, Response) =>
+// Create servers
+const HTTP = http.createServer((Request, Response) => __Server(Request, Response));
+const HTTPS = https.createServer(Options, (Request, Response) => __Server(Request, Response));
+
+// Start the servers
+HTTP.listen(Config.Port.HTTP, () => console.log('\x1b[36m%s\x1b[0m', `Server Running on Port: ${Config.Port.HTTP} -- Protocol: HTTP -- Mode: ${Config.Mode} `));
+HTTPS.listen(Config.Port.HTTPS, () => console.log('\x1b[33m%s\x1b[0m', `Server Running on Port: ${Config.Port.HTTPS} -- Protocol: HTTPS -- Mode: ${Config.Mode} `));
+
+// All the server logic for both the HTTP and HTTPS server
+let __Server = (Request, Response) =>
 {
-    // parsed url
-    let ParsedUrl = URL.parse(Request.url, true);
+    // Get the URL and parse it
+    let ParsedUrl = url.parse(Request.url, true);
 
-    // Get the path
-    let PathName = ParsedUrl.pathname;
-    let TrimeedPath = PathName.replace(/^\/+|\/+$/g, '');
+    // Get the pathname from url (localhost:3000/foo/ -> foo)
+    let PathName = ParsedUrl.pathname.replace(/^\/+|\/+$/g, '');
 
-    // Get the query string as an object (curl http://localhost:3000?Api=Gym)
+    // Get the query string as an object
     let QueryString = ParsedUrl.query;
 
     // Get the HTTP method
@@ -35,7 +46,7 @@ HTTP.createServer((Request, Response) =>
     // Get the headers as an object
     let Headers = Request.headers;
 
-    // Get the payload
+    // Get the payload, if any
     let __Buffer = '';
 
     Request.on('data', Data =>
@@ -47,29 +58,31 @@ HTTP.createServer((Request, Response) =>
     {
         __Buffer += Decoder.end();
 
-        // Check the router for a matching path
-        let Routers = typeof (Router[TrimeedPath]) !== 'undefined' ? Router[TrimeedPath] : Handler.NotFound;
+        // Choose the api this request should go to, If one is not found, use the not found
+        let ChosenApi = typeof Router[PathName] !== 'undefined' ? Router[PathName] : Router.NotFound;
 
-        // Construct the data object to send the handler
-        let Data = { TrimeedPath, QueryString, Method, Headers, Payload: Helper.ParseJsonToObject(__Buffer) };
+        // Construct the data object to send to the api
+        let Data = { ParsedUrl, PathName, QueryString, Method, Headers, Payload: Helper.ParseJsonToObject(__Buffer) };
 
-        // Route the request to the handler specified in the router
-        Routers(Data, (StatusCode, Payload) =>
+        // Route the request to the api specified in the router
+        ChosenApi(Data, (StatusCode, Payload) =>
         {
-            // Use the status code returned from the handler
+            // Use the status code called back by the api, or default to 200
             StatusCode = typeof StatusCode === 'number' ? StatusCode : 200;
 
-            // Use the payload returned from the handler
-            Payload = typeof Payload === 'object' ? Payload : '';
+            // Use the payload called back by the api, or default to an empty object
+            Payload = typeof Payload === 'object' ? Payload : { };
 
             // Convert the payload to a string
             let PayloadString = JSON.stringify(Payload);
 
             // Return the response
-            Response.writeHead(StatusCode, { 'Content-Type': 'application/json' });
+            Response.setHeader('Content-Type', 'application/json');
+            Response.writeHead(StatusCode);
             Response.end(PayloadString);
 
-            console.log(StatusCode, PayloadString);
+            // Log the response
+            console.log(StatusCode, Payload, PayloadString);
         });
     });
-}).listen(Config.Port, () => console.log(`Server Running on Port: ${Config.Port} -- Mode: ${Config.Name}`));
+};
