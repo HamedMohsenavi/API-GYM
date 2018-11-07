@@ -25,8 +25,8 @@ const HTTP = http.createServer((Request, Response) => __Server(Request, Response
 const HTTPS = https.createServer(Options, (Request, Response) => __Server(Request, Response));
 
 // Start the servers
-HTTP.listen(Config.Port.HTTP, () => console.log('\x1b[36m%s\x1b[0m', `Server Running on Port: ${Config.Port.HTTP} -- Protocol: HTTP -- Mode: ${Config.Mode} `));
-HTTPS.listen(Config.Port.HTTPS, () => console.log('\x1b[33m%s\x1b[0m', `Server Running on Port: ${Config.Port.HTTPS} -- Protocol: HTTPS -- Mode: ${Config.Mode} `));
+HTTP.listen(Config.Port.HTTP, () => console.log(`Server Running on Port: ${Config.Port.HTTP} -- Protocol: HTTP -- Mode: ${Config.Mode} `));
+HTTPS.listen(Config.Port.HTTPS, () => console.log('\x1b[36m%s\x1b[0m', `Server Running on Port: ${Config.Port.HTTPS} -- Protocol: HTTPS -- Mode: ${Config.Mode} `));
 
 // All the server logic for both the HTTP and HTTPS server
 let __Server = (Request, Response) =>

@@ -35,6 +35,8 @@ const Account = (Data, Callback) =>
  * @var {string} NationalCode
  * @var {Number} Gender -- 1 Male 2 Female
  * @var {string} Address
+ * @var {string} Serial
+ * @var {string} Image
  *
  * @description Result: 1 >> Account was successfully created
  *              Result: 2 >> Could not create the new account
@@ -57,8 +59,10 @@ _Account.POST = (Data, Callback) =>
     const NationalCode = typeof Data.Payload.NationalCode === 'string' && Data.Payload.NationalCode.trim().length === 12 ? Data.Payload.NationalCode : false;
     const Gender = typeof Data.Payload.Gender === 'number' && (Data.Payload.Gender === 1 || Data.Payload.Gender === 2) ? Data.Payload.Gender : false;
     const Address = typeof Data.Payload.Address === 'string' && Data.Payload.Address.trim().length > 0 ? Data.Payload.Address : false;
+    const Serial = typeof Data.Payload.Serial === 'string' && Data.Payload.Serial.trim().length > 0 ? Data.Payload.Serial : false;
+    const Image = typeof Data.Payload.Image === 'string' && Data.Payload.Image.trim().length > 0 ? Data.Payload.Image : false;
 
-    if (Name && Family && FatherName && Phone && Password && NationalCode && Gender && Address)
+    if (Name && Family && FatherName && Phone && Password && NationalCode && Gender && Address && Serial && Image)
     {
         // Make sure that the account dosent already exist
         Database.Read('Accounts', Phone, RError =>
@@ -69,7 +73,7 @@ _Account.POST = (Data, Callback) =>
 
                 if (SHAPassword)
                 {
-                    let AccountObject = { Name, Family, FatherName, Phone, SHAPassword, NationalCode, Gender, Address, Active: false, CreatedAt: Date.now(), UpdatedAt: Date.now() };
+                    let AccountObject = { Name, Family, FatherName, Phone, SHAPassword, NationalCode, Gender, Address, Serial, Image, Active: false, CreatedAt: Date.now(), UpdatedAt: Date.now() };
 
                     // Store the account
                     Database.Create('Accounts', Phone, AccountObject, CError =>
