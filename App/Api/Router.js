@@ -9,6 +9,6 @@ const NotFound = (Data, Callback) =>
 };
 
 // Define a request router
-const Router = { Account, Session, NotFound };
+const Router = { Account: Account.Main, Session: Session.Main, NotFound };
 
 module.exports = Router;

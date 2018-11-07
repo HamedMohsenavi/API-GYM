@@ -6,15 +6,15 @@ const Helper = require('./../Core/Helper');
 const Session = require('./Session');
 
 // Container for the account submethods
-const _Account = { };
+const Account = { };
 
-const Account = (Data, Callback) =>
+Account.Main = (Data, Callback) =>
 {
     // Request methods
     const Methods = ['POST', 'GET', 'PUT', 'DELETE'];
 
     if (Methods.indexOf(Data.Method) > -1)
-        _Account[Data.Method](Data, Callback);
+        Account[Data.Method](Data, Callback);
     else
         Callback(405); // 405 Method Not Allowed
 };
@@ -48,7 +48,7 @@ const Account = (Data, Callback) =>
  *
  */
 
-_Account.POST = (Data, Callback) =>
+Account.POST = (Data, Callback) =>
 {
     // Check that all required fields are filled out
     const Name = typeof Data.Payload.Name === 'string' && Data.Payload.Name.trim().length > 0 ? Data.Payload.Name : false;
@@ -104,6 +104,7 @@ _Account.POST = (Data, Callback) =>
  * @param {object} Callback.Payload
  *
  * @var {string} Phone
+ * @var {string} session -- Header
  *
  * @description Result: 1 >> Account not found
  *              Result: 2 >> Missing required session in header, or session is invalid
@@ -113,7 +114,7 @@ _Account.POST = (Data, Callback) =>
  *
  */
 
-_Account.GET = (Data, Callback) =>
+Account.GET = (Data, Callback) =>
 {
     // Check for required field
     const Phone = typeof Data.QueryString.Phone === 'string' && Data.QueryString.Phone.trim().length === 11 ? Data.QueryString.Phone : false;
@@ -123,7 +124,7 @@ _Account.GET = (Data, Callback) =>
         // Get the session from the header
         const SessionID = typeof Data.Headers.session === 'string' ? Data.Headers.session : false;
 
-        // Verify that the given token is valid for the phone number
+        // Verify that the given session is valid for the phone number
         Session.Verify(SessionID, Phone, SessionIsValid =>
         {
             if (SessionIsValid)
@@ -163,6 +164,7 @@ _Account.GET = (Data, Callback) =>
  * @var {string} NationalCode
  * @var {Number} Gender -- 1 Male 2 Female
  * @var {string} Address
+ * @var {string} session -- Header
  *
  * @description Result: 1 >> Account was successfully updated
  *              Result: 2 >> Could not update the account
@@ -175,7 +177,7 @@ _Account.GET = (Data, Callback) =>
  *
  */
 
-_Account.PUT = (Data, Callback) =>
+Account.PUT = (Data, Callback) =>
 {
     // Check for required field
     const Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone : false;
@@ -196,7 +198,7 @@ _Account.PUT = (Data, Callback) =>
             // Get the session from the header
             const SessionID = typeof Data.Headers.session === 'string' ? Data.Headers.session : false;
 
-            // Verify that the given token is valid for the phone number
+            // Verify that the given session is valid for the phone number
             Session.Verify(SessionID, Phone, SessionIsValid =>
             {
                 if (SessionIsValid)
@@ -255,6 +257,7 @@ _Account.PUT = (Data, Callback) =>
  * @param {object} Callback.Payload
  *
  * @var {string} Phone
+ * @var {string} session -- Header
  *
  * @description Result: 1 >> Account was successfully deleted
  *              Result: 2 >> Could not delete the account
@@ -266,7 +269,7 @@ _Account.PUT = (Data, Callback) =>
  *
  */
 
-_Account.DELETE = (Data, Callback) =>
+Account.DELETE = (Data, Callback) =>
 {
     // Check for required field
     const Phone = typeof Data.QueryString.Phone === 'string' && Data.QueryString.Phone.trim().length === 11 ? Data.QueryString.Phone : false;
@@ -276,7 +279,7 @@ _Account.DELETE = (Data, Callback) =>
         // Get the session from the header
         const SessionID = typeof Data.Headers.session === 'string' ? Data.Headers.session : false;
 
-        // Verify that the given token is valid for the phone number
+        // Verify that the given session is valid for the phone number
         Session.Verify(SessionID, Phone, SessionIsValid =>
         {
             if (SessionIsValid)
@@ -303,6 +306,33 @@ _Account.DELETE = (Data, Callback) =>
     }
     else
         Callback(400, { Result: 5 });
+};
+
+/**
+ *
+ * @description Verify account, If a given serial is currently valid for a given account
+ *
+ * @param {string} Serial
+ * @param {Number} Phone
+ * @param {object} Callback - True, False
+ *
+ */
+
+Account.Verify = (Serial, Phone, Callback) =>
+{
+    Database.Read('Accounts', Phone, (RError, AccountData) =>
+    {
+        if (!RError && AccountData)
+        {
+            // Check that the Serial is for the given account
+            if (AccountData.Serial === Serial)
+                Callback(true);
+            else
+                Callback(false);
+        }
+        else
+            Callback(false);
+    });
 };
 
 module.exports = Account;

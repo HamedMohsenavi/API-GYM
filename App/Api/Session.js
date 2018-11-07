@@ -2,16 +2,19 @@
 const Database = require('./../Core/Database');
 const Helper = require('./../Core/Helper');
 
-// Container for the session submethods
-const _Session = { };
+// Api
+const Account = require('./Account');
 
-const Session = (Data, Callback) =>
+// Container for the session submethods
+const Session = { };
+
+Session.Main = (Data, Callback) =>
 {
     // Request methods
     const Methods = ['POST', 'GET', 'PUT', 'DELETE'];
 
     if (Methods.indexOf(Data.Method) > -1)
-        _Session[Data.Method](Data, Callback);
+        Session[Data.Method](Data, Callback);
     else
         Callback(405); // 405 Method Not Allowed
 };
@@ -26,51 +29,65 @@ const Session = (Data, Callback) =>
  *
  * @var {string} Phone
  * @var {string} Password
+ * @var {string} Serial -- Header
  *
  * @description Result: 1 >> Could not create the new session
  *              Result: 2 >> The information entered is not correct (Password)
  *              Result: 3 >> The information entered is not correct (Account)
  *              Result: 4 >> Missing required fields
+*               Result: 5 >> Missing required serial in header, or serial is invalid
  *
  *              StatusCode = 200 OK, 400 Bad Request, 500 Internal Server Error
  *
  */
 
-_Session.POST = (Data, Callback) =>
+Session.POST = (Data, Callback) =>
 {
     const Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone : false;
     const Password = typeof Data.Payload.Password === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password : false;
 
-    if (Phone && Password)
+    // Get the serial from the header
+    const Serial = typeof Data.Headers.serial === 'string' ? Data.Headers.serial : false;
+
+    // Verify that the given serial is valid for the phone serial number
+    Account.Verify(Serial, Phone, SerialIsValid =>
     {
-        Database.Read('Accounts', Phone, (RError, AccountData) =>
+        if (SerialIsValid)
         {
-            if (!RError && AccountData)
+            if (Phone && Password)
             {
-                let SHAPassword = Helper.Hash(Password);
-
-                if (SHAPassword === AccountData.SHAPassword)
+                Database.Read('Accounts', Phone, (RError, AccountData) =>
                 {
-                    let SessionObject = { SessionID: Helper.RandomString(20), Phone, Expire: Date.now() + 1000 * 60 * 60 * 24 };
-
-                    // Store the session
-                    Database.Create('Sessions', SessionObject.SessionID, SessionObject, CError =>
+                    if (!RError && AccountData)
                     {
-                        if (!CError)
-                            Callback(200, SessionObject);
+                        let SHAPassword = Helper.Hash(Password);
+        
+                        if (SHAPassword === AccountData.SHAPassword)
+                        {
+                            let SessionObject = { SessionID: Helper.RandomString(20), Phone, Expire: Date.now() + 1000 * 60 * 60 * 24 };
+        
+                            // Store the session
+                            Database.Create('Sessions', SessionObject.SessionID, SessionObject, CError =>
+                            {
+                                if (!CError)
+                                    Callback(200, SessionObject);
+                                else
+                                    Callback(500, { Result: 1 });
+                            });
+                        }
                         else
-                            Callback(500, { Result: 1 });
-                    });
-                }
-                else
-                    Callback(400, { Result: 2 });
+                            Callback(400, { Result: 2 });
+                    }
+                    else
+                        Callback(400, { Result: 3 });
+                });
             }
             else
-                Callback(400, { Result: 3 });
-        });
-    }
-    else
-        Callback(400, { Result: 4 });
+                Callback(400, { Result: 4 });
+        }
+        else
+            Callback(400, { Result: 5 });
+    });
 };
 
 /**
@@ -90,7 +107,7 @@ _Session.POST = (Data, Callback) =>
  *
  */
 
-_Session.GET = (Data, Callback) =>
+Session.GET = (Data, Callback) =>
 {
     const SessionID = typeof Data.QueryString.SessionID === 'string' && Data.QueryString.SessionID.trim().length === 20 ? Data.QueryString.SessionID : false;
 
@@ -130,7 +147,7 @@ _Session.GET = (Data, Callback) =>
  *
  */
 
-_Session.PUT = (Data, Callback) =>
+Session.PUT = (Data, Callback) =>
 {
     const SessionID = typeof Data.Payload.SessionID === 'string' && Data.Payload.SessionID.trim().length === 20 ? Data.Payload.SessionID : false;
     const Extend = !!(typeof Data.Payload.Extend === 'boolean' && Data.Payload.Extend === true)
@@ -184,7 +201,7 @@ _Session.PUT = (Data, Callback) =>
  *
  */
 
-_Session.DELETE = (Data, Callback) =>
+Session.DELETE = (Data, Callback) =>
 {
     const SessionID = typeof Data.QueryString.SessionID === 'string' && Data.QueryString.SessionID.trim().length === 20 ? Data.QueryString.SessionID : false;
 
@@ -212,7 +229,7 @@ _Session.DELETE = (Data, Callback) =>
 
 /**
  *
- * @description Verify session, If a given id is currently valid for a given account
+ * @description Verify session, If a given session id is currently valid for a given account
  *
  * @param {string} SessionID
  * @param {Number} Phone
