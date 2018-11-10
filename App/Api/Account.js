@@ -57,7 +57,7 @@ Account.POST = (Data, Callback) =>
     const Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone : false;
     const Password = typeof Data.Payload.Password === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password : false;
     const NationalCode = typeof Data.Payload.NationalCode === 'string' && Data.Payload.NationalCode.trim().length === 12 ? Data.Payload.NationalCode : false;
-    const Gender = typeof Data.Payload.Gender === 'number' && (Data.Payload.Gender === 1 || Data.Payload.Gender === 2) ? Data.Payload.Gender : false;
+    const Gender = typeof Data.Payload.Gender === 'string' && (Data.Payload.Gender.trim() === '0' || Data.Payload.Gender.trim() === '1' || Data.Payload.Gender.trim() === '2') ? Data.Payload.Gender.trim() : false;
     const Address = typeof Data.Payload.Address === 'string' && Data.Payload.Address.trim().length > 0 ? Data.Payload.Address : false;
     const Serial = typeof Data.Payload.Serial === 'string' && Data.Payload.Serial.trim().length > 0 ? Data.Payload.Serial : false;
     const Image = typeof Data.Payload.Image === 'string' && Data.Payload.Image.trim().length > 0 ? Data.Payload.Image : false;
