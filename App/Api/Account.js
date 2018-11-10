@@ -56,7 +56,7 @@ Account.POST = (Data, Callback) =>
     const FatherName = typeof Data.Payload.FatherName === 'string' && Data.Payload.FatherName.trim().length > 0 ? Data.Payload.FatherName : false;
     const Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone : false;
     const Password = typeof Data.Payload.Password === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password : false;
-    const NationalCode = typeof Data.Payload.NationalCode === 'string' && Data.Payload.NationalCode.trim().length === 12 ? Data.Payload.NationalCode : false;
+    const NationalCode = typeof Data.Payload.NationalCode === 'string' && Data.Payload.NationalCode.trim().length >= 10 ? Data.Payload.NationalCode : false;
     const Gender = typeof Data.Payload.Gender === 'string' && (Data.Payload.Gender.trim() === '0' || Data.Payload.Gender.trim() === '1' || Data.Payload.Gender.trim() === '2') ? Data.Payload.Gender.trim() : false;
     const Address = typeof Data.Payload.Address === 'string' && Data.Payload.Address.trim().length > 0 ? Data.Payload.Address : false;
     const Serial = typeof Data.Payload.Serial === 'string' && Data.Payload.Serial.trim().length > 0 ? Data.Payload.Serial : false;
@@ -110,7 +110,7 @@ Account.POST = (Data, Callback) =>
  *              Result: 2 >> Missing required session in header, or session is invalid
  *              Result: 3 >> Missing required fields
  *
- *              StatusCode = 200 OK, 400 Bad Request, 403 Forbidden, 404 Page not found
+ *              StatusCode = 200 OK, 400 Bad Request, 403 Forbidden, 404 Bad Request
  *
  */
 
@@ -221,9 +221,9 @@ Account.PUT = (Data, Callback) =>
                                 AccountData.Gender = Gender;
                             if (Address)
                                 AccountData.Address = Address;
-
+        
                             AccountData.UpdatedAt = Date.now();
-
+        
                             // Store the new updates
                             Database.Update('Accounts', Phone, AccountData, UError =>
                             {
@@ -291,40 +291,7 @@ Account.DELETE = (Data, Callback) =>
                         Database.Delete('Accounts', Phone, DError =>
                         {
                             if (!DError)
-                            {
-                                // Delete each of the checks associated with the account
-                                const AccountChecks = typeof AccountData.Checks === 'object' && AccountData.Checks instanceof Array ? AccountData.Checks : [];
-                                let ChecksToDelete = AccountChecks.length;
-
-                                if (ChecksToDelete > 0)
-                                {
-                                    let ChecksDeleted = 0;
-                                    let DeletionErrors = false;
-
-                                    // Loop through the checks
-                                    AccountChecks.forEach(CheckID =>
-                                    {
-                                        // Delete the check
-                                        Database.Delete('Checks', CheckID, DError =>
-                                        {
-                                            if (DError)
-                                                DeletionErrors = true;
-
-                                            ChecksDeleted++;
-
-                                            if (ChecksDeleted === ChecksToDelete)
-                                            {
-                                                if (!DeletionErrors)
-                                                    Callback(200);
-                                                else
-                                                    Callback(500);
-                                            }
-                                        });
-                                    });
-                                }
-                                else
-                                    Callback(200);
-                            }
+                                Callback(200, { Result: 1 });
                             else
                                 Callback(500, { Result: 2 });
                         });
@@ -339,6 +306,33 @@ Account.DELETE = (Data, Callback) =>
     }
     else
         Callback(400, { Result: 5 });
+};
+
+/**
+ *
+ * @description Verify account, If a given serial is currently valid for a given account
+ *
+ * @param {string} Serial
+ * @param {Number} Phone
+ * @param {object} Callback - True, False
+ *
+ */
+
+Account.Verify = (Serial, Phone, Callback) =>
+{
+    Database.Read('Accounts', Phone, (RError, AccountData) =>
+    {
+        if (!RError && AccountData)
+        {
+            // Check that the Serial is for the given account
+            if (AccountData.Serial === Serial)
+                Callback(true);
+            else
+                Callback(false);
+        }
+        else
+            Callback(false);
+    });
 };
 
 module.exports = Account;
