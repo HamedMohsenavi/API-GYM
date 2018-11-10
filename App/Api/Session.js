@@ -46,48 +46,36 @@ Session.POST = (Data, Callback) =>
     const Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone : false;
     const Password = typeof Data.Payload.Password === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password : false;
 
-    // Get the serial from the header
-    const Serial = typeof Data.Headers.serial === 'string' ? Data.Headers.serial : false;
-
-    // Verify that the given serial is valid for the phone serial number
-    Account.Verify(Serial, Phone, SerialIsValid =>
+    if (Phone && Password)
     {
-        if (SerialIsValid)
+        Database.Read('Accounts', Phone, (RError, AccountData) =>
         {
-            if (Phone && Password)
+            if (!RError && AccountData)
             {
-                Database.Read('Accounts', Phone, (RError, AccountData) =>
+                let SHAPassword = Helper.Hash(Password);
+
+                if (SHAPassword === AccountData.SHAPassword)
                 {
-                    if (!RError && AccountData)
+                    let SessionObject = { SessionID: Helper.RandomString(20), Phone, Expire: Date.now() + 1000 * 60 * 60 * 24 };
+
+                    // Store the session
+                    Database.Create('Sessions', SessionObject.SessionID, SessionObject, CError =>
                     {
-                        let SHAPassword = Helper.Hash(Password);
-        
-                        if (SHAPassword === AccountData.SHAPassword)
-                        {
-                            let SessionObject = { SessionID: Helper.RandomString(20), Phone, Expire: Date.now() + 1000 * 60 * 60 * 24 };
-        
-                            // Store the session
-                            Database.Create('Sessions', SessionObject.SessionID, SessionObject, CError =>
-                            {
-                                if (!CError)
-                                    Callback(200, SessionObject);
-                                else
-                                    Callback(500, { Result: 1 });
-                            });
-                        }
+                        if (!CError)
+                            Callback(200, SessionObject);
                         else
-                            Callback(400, { Result: 2 });
-                    }
-                    else
-                        Callback(400, { Result: 3 });
-                });
+                            Callback(500, { Result: 1 });
+                    });
+                }
+                else
+                    Callback(400, { Result: 2 });
             }
             else
-                Callback(400, { Result: 4 });
-        }
-        else
-            Callback(400, { Result: 5 });
-    });
+                Callback(400, { Result: 3 });
+        });
+    }
+    else
+        Callback(400, { Result: 4 });
 };
 
 /**
@@ -116,9 +104,7 @@ Session.GET = (Data, Callback) =>
         Database.Read('Sessions', SessionID, (RError, SessionData) =>
         {
             if (!RError && SessionData)
-            {
                 Callback(200, SessionData);
-            }
             else
                 Callback(404, { Result: 1 });
         });
@@ -150,7 +136,7 @@ Session.GET = (Data, Callback) =>
 Session.PUT = (Data, Callback) =>
 {
     const SessionID = typeof Data.Payload.SessionID === 'string' && Data.Payload.SessionID.trim().length === 20 ? Data.Payload.SessionID : false;
-    const Extend = !!(typeof Data.Payload.Extend === 'boolean' && Data.Payload.Extend === true)
+    const Extend = !!(typeof Data.Payload.Extend === 'boolean' && Data.Payload.Extend === true);
 
     if (SessionID && Extend)
     {
@@ -172,7 +158,7 @@ Session.PUT = (Data, Callback) =>
                     });
                 }
                 else
-                    Callback(400, { Result: 2 }); 
+                    Callback(400, { Result: 2 });
             }
             else
                 Callback(400, { Result: 3 });
