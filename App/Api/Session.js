@@ -2,9 +2,6 @@
 const Database = require('./../Core/Database');
 const Helper = require('./../Core/Helper');
 
-// Api
-const Account = require('./Account');
-
 // Container for the session submethods
 const Session = { };
 

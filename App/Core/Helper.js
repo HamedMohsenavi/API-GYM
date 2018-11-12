@@ -1,5 +1,6 @@
 // Node Native
 const crypto = require('crypto');
+const https = require('https');
 
 // Core
 const Config = require('./Config');
@@ -43,6 +44,67 @@ Helper.RandomString = (Length) =>
     }
 
     return false;
+};
+
+// @TODO: Get Token
+Helper.SendSMS = (Phone, Message, Callback) =>
+{
+    Phone = typeof Phone === 'object' && Phone instanceof Array ? Phone : false;
+    Message = typeof Message === 'object' && Message instanceof Array ? Message : false;
+
+    if (Phone && Message)
+    {
+        const SendMessage = JSON.stringify(
+        {
+            Messages: Message,
+            MobileNumbers: Phone,
+            LineNumber: Config.SMS.LineNumber,
+            SendDateTime: '',
+            CanContinueInCaseOfError: 'false'
+        });
+
+        const RequestDetails =
+        {
+            hostname: 'RestfulSms.com',
+            path: '/api/MessageSend',
+            method: 'POST',
+            headers:
+            {
+                'Content-Type': 'application/json',
+                'Content-Length': SendMessage.length,
+                'x-sms-ir-secure-token': ''
+            }
+        };
+
+        const Request = https.request(RequestDetails, Response =>
+        {
+            let _Buffer = '';
+            let Status = Response.statusCode;
+
+            Response.on('data', Data =>
+            {
+                _Buffer = JSON.parse(Data);
+            });
+
+            Response.on('end', () =>
+            {
+                if (_Buffer.IsSuccessful && Status === 201)
+                    Callback('Sent');
+                else
+                    Callback('Failed');
+            });
+        });
+
+        Request.on('error', _Error =>
+        {
+            Callback(_Error);
+        });
+
+        Request.write(SendMessage);
+        Request.end();
+    }
+    else
+        Callback('Missing required fields');
 };
 
 module.exports = Helper;

@@ -4,14 +4,26 @@ Config.Staging =
 {
     Port: { HTTP: 3000, HTTPS: 3001 },
     Mode: 'Staging',
-    Hash: 'Secret'
+    Hash: 'Secret',
+    SMS:
+    {
+        UserApiKey: 'Secret',
+        SecretKey: 'Secret',
+        LineNumber: '30000000000000'
+    }
 };
 
 Config.Production =
 {
     Port: { HTTP: 5000, HTTPS: 5001 },
     Mode: 'Production',
-    Hash: 'Secret'
+    Hash: 'Secret',
+    SMS:
+    {
+        UserApiKey: 'Secret',
+        SecretKey: 'Secret',
+        LineNumber: '30000000000000'
+    }
 };
 
 // Determine which environment was passed as a command-line argument
