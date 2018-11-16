@@ -1,7 +1,6 @@
 // Api
 const Account = require('./Account');
 const Session = require('./Session');
-const Check = require('./Check');
 
 // Api || Router not found
 const NotFound = (Data, Callback) =>
@@ -10,6 +9,6 @@ const NotFound = (Data, Callback) =>
 };
 
 // Define a request router
-const Router = { Account: Account.Main, Session: Session.Main, Check: Check.Main, NotFound };
+const Router = { Account: Account.Main, Session: Session.Main, NotFound };
 
 module.exports = Router;

@@ -1,5 +1,6 @@
 {
     "extends": "standard",
+    "globals": { "DB": true, "MongoID": true },
     "rules":
     {
         "semi": [2, "always"],

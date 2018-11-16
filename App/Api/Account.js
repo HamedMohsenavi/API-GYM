@@ -1,9 +1,5 @@
 // Core
-const Database = require('./../Core/Database');
 const Helper = require('./../Core/Helper');
-
-// Api
-const Session = require('./Session');
 
 // Container for the account submethods
 const Account = { };
@@ -27,22 +23,29 @@ Account.Main = (Data, Callback) =>
  * @param {Number} Callback.StatusCode
  * @param {object} Callback.Payload
  *
- * @var {string} Name
- * @var {string} Family
- * @var {string} FatherName
- * @var {string} Phone
- * @var {string} Password
- * @var {string} NationalCode
- * @var {Number} Gender -- 1 Male 2 Female
- * @var {string} Address
- * @var {string} Serial
- * @var {string} Image
+ * @var {string} name
+ * @var {string} family
+ * @var {string} fatherName
+ * @var {string} phone
+ * @var {string} password
+ * @var {string} nationalCode
+ * @var {Number} gender -- 0 -_- 1 Male 2 Female
+ * @var {string} address
+ * @var {string} serial
+ * @var {string} image
  *
- * @description Result: 1 >> Account was successfully created
- *              Result: 2 >> Could not create the new account
- *              Result: 3 >> Could not hash the account password
- *              Result: 4 >> A account with that phone number already exists
- *              Result: 5 >> Missing required fields
+ * @description Result: 1 >> A account with that phone number already exists
+ *              Result: 2 >> name (undefined)
+ *              Result: 3 >> family (undefined)
+ *              Result: 4 >> fatherName (undefined)
+ *              Result: 5 >> phone (undefined)
+ *              Result: 6 >> password (undefined)
+ *              Result: 7 >> nationalCode (undefined)
+ *              Result: 8 >> gender (undefined)
+ *              Result: 9 >> address (undefined)
+ *              Result: 10 >> serial (undefined)
+ *              Result: 11 >> Could not create the new account
+ *              Result: 12 >> Account was successfully created
  *
  *              StatusCode = 200 OK, 400 Bad Request, 500 Internal Server Error
  *
@@ -50,49 +53,65 @@ Account.Main = (Data, Callback) =>
 
 Account.POST = (Data, Callback) =>
 {
-    // Check that all required fields are filled out
-    const Name = typeof Data.Payload.Name === 'string' && Data.Payload.Name.trim().length > 0 ? Data.Payload.Name : false;
-    const Family = typeof Data.Payload.Family === 'string' && Data.Payload.Family.trim().length > 0 ? Data.Payload.Family : false;
-    const FatherName = typeof Data.Payload.FatherName === 'string' && Data.Payload.FatherName.trim().length > 0 ? Data.Payload.FatherName : false;
-    const Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone : false;
-    const Password = typeof Data.Payload.Password === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password : false;
-    const NationalCode = typeof Data.Payload.NationalCode === 'string' && Data.Payload.NationalCode.trim().length === 10 ? Data.Payload.NationalCode : false;
-    const Gender = typeof Data.Payload.Gender === 'string' && (Data.Payload.Gender.trim() === '0' || Data.Payload.Gender.trim() === '1' || Data.Payload.Gender.trim() === '2') ? Data.Payload.Gender.trim() : false;
-    const Address = typeof Data.Payload.Address === 'string' && Data.Payload.Address.trim().length > 0 ? Data.Payload.Address : false;
-    const Serial = typeof Data.Payload.Serial === 'string' && Data.Payload.Serial.trim().length > 0 ? Data.Payload.Serial : false;
-    const Image = typeof Data.Payload.Image === 'string' && Data.Payload.Image.trim().length > 0 ? Data.Payload.Image : false;
-
-    if (Name && Family && FatherName && Phone && Password && NationalCode && Gender && Address && Serial && Image)
+    let object =
     {
-        // Make sure that the account dosent already exist
-        Database.Read('Accounts', Phone, RError =>
+        name: Data.Payload.name,
+        family: Data.Payload.family,
+        fatherName: Data.Payload.fatherName,
+        phone: Data.Payload.phone,
+        password: Data.Payload.password,
+        nationalCode: Data.Payload.nationalCode,
+        gender: Data.Payload.gender,
+        address: Data.Payload.address,
+        serial: Data.Payload.serial,
+        image: Data.Payload.image
+    };
+
+    DB.collection('accounts').find({ phone: object.phone }).limit(1).project({ _id: 1 }).toArray((error, result) =>
+    {
+        if (error)
+            return Callback(500);
+
+        if (result[0])
+            return Callback(400, { Result: 1 });
+
+        if (typeof object.name === 'undefined' || object.name.trim().length < 2)
+            return Callback(400, { Result: 2 });
+
+        if (typeof object.family === 'undefined' || object.family.trim().length < 2)
+            return Callback(400, { Result: 3 });
+
+        if (typeof object.fatherName === 'undefined' || object.fatherName.trim().length < 2)
+            return Callback(400, { Result: 4 });
+
+        if (typeof object.phone === 'undefined' || object.phone.trim().length !== 11)
+            return Callback(400, { Result: 5 });
+
+        if (typeof object.password === 'undefined' || object.password.trim().length < 8)
+            return Callback(400, { Result: 6 });
+
+        if (typeof object.nationalCode === 'undefined' || object.nationalCode.trim().length !== 10)
+            return Callback(400, { Result: 7 });
+
+        if (typeof object.gender === 'undefined' || typeof object.gender !== 'number' || object.gender >= 3)
+            return Callback(400, { Result: 8 });
+
+        if (typeof object.address === 'undefined' || object.address.trim().length < 2)
+            return Callback(400, { Result: 9 });
+
+        if (typeof object.serial === 'undefined' || object.serial.trim().length < 2)
+            return Callback(400, { Result: 10 });
+
+        // @TODO IMAGE
+
+        DB.collection('accounts').insertOne({ ...object, password: Helper.Hash(object.password) }, error1 =>
         {
-            if (RError)
-            {
-                let SHAPassword = Helper.Hash(Password);
+            if (error1)
+                return Callback(500, { Result: 11 });
 
-                if (SHAPassword)
-                {
-                    let AccountObject = { Name, Family, FatherName, Phone, SHAPassword, NationalCode, Gender, Address, Serial, Image, Active: false, CreatedAt: Date.now(), UpdatedAt: Date.now() };
-
-                    // Store the account
-                    Database.Create('Accounts', Phone, AccountObject, CError =>
-                    {
-                        if (!CError)
-                            Callback(200, { Result: 1 });
-                        else
-                            Callback(500, { Result: 2 });
-                    });
-                }
-                else
-                    Callback(500, { Result: 3 });
-            }
-            else
-                Callback(400, { Result: 4 });
+            return Callback(200, { Result: 12 });
         });
-    }
-    else
-        Callback(400, { Result: 5 });
+    });
 };
 
 /**
@@ -103,12 +122,12 @@ Account.POST = (Data, Callback) =>
  * @param {Number} Callback.StatusCode
  * @param {object} Callback.Payload
  *
- * @var {string} Phone
+ * @var {string} phone -- query
  * @var {string} session -- Header
  *
- * @description Result: 1 >> Account not found
- *              Result: 2 >> Missing required session in header, or session is invalid
- *              Result: 3 >> Missing required fields
+ * @description Result: 1 >> session (undefined)
+ *              Result: 2 >> session expired
+ *              Result: 3 >> phone invalid
  *
  *              StatusCode = 200 OK, 400 Bad Request, 403 Forbidden, 404 Page not found
  *
@@ -116,36 +135,31 @@ Account.POST = (Data, Callback) =>
 
 Account.GET = (Data, Callback) =>
 {
-    // Check for required field
-    const Phone = typeof Data.QueryString.Phone === 'string' && Data.QueryString.Phone.trim().length === 11 ? Data.QueryString.Phone : false;
+    let phone = Data.QueryString.phone;
+    let sessionID = Data.Headers.session;
 
-    if (Phone)
+    DB.collection('sessions').find({ sessionID }).limit(1).toArray((error, result) =>
     {
-        // Get the session from the header
-        const SessionID = typeof Data.Headers.session === 'string' ? Data.Headers.session : false;
+        if (error)
+            return Callback(500);
 
-        // Verify that the given session is valid for the phone number
-        Session.Verify(SessionID, Phone, SessionIsValid =>
+        if (typeof sessionID === 'undefined' || sessionID.trim().length !== 50)
+            return Callback(404, { Result: 1 });
+
+        if (result[0].expire < Date.now())
+            return Callback(400, { Result: 2 });
+
+        if (result[0].phone !== phone)
+            return Callback(400, { Result: 3 });
+
+        DB.collection('accounts').find({ phone }).limit(1).project({ password: 0 }).toArray((error1, result1) =>
         {
-            if (SessionIsValid)
-            {
-                Database.Read('Accounts', Phone, (RError, AccountData) =>
-                {
-                    if (!RError && AccountData)
-                    {
-                        delete AccountData.SHAPassword;
-                        Callback(200, AccountData);
-                    }
-                    else
-                        Callback(404, { Result: 1 });
-                });
-            }
-            else
-                Callback(403, { Result: 2 });
+            if (error1)
+                return Callback(500, error1);
+
+            return Callback(200, result1[0]);
         });
-    }
-    else
-        Callback(400, { Result: 3 });
+    });
 };
 
 /**
@@ -156,14 +170,14 @@ Account.GET = (Data, Callback) =>
  * @param {Number} Callback.StatusCode
  * @param {object} Callback.Payload
  *
- * @var {string} Name
- * @var {string} Family
- * @var {string} FatherName
- * @var {string} Phone
- * @var {string} Password
- * @var {string} NationalCode
- * @var {Number} Gender -- 1 Male 2 Female
- * @var {string} Address
+ * @var {string} name
+ * @var {string} family
+ * @var {string} fatherName
+ * @var {string} phone
+ * @var {string} password
+ * @var {string} nationalCode
+ * @var {number} gender -- 0 -_- 1 Male 2 Female
+ * @var {string} address
  * @var {string} session -- Header
  *
  * @description Result: 1 >> Account was successfully updated
@@ -179,73 +193,19 @@ Account.GET = (Data, Callback) =>
 
 Account.PUT = (Data, Callback) =>
 {
-    // Check for required field
-    const Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone : false;
-
-    // Check for optional fields
-    const Name = typeof Data.Payload.Name === 'string' && Data.Payload.Name.trim().length > 0 ? Data.Payload.Name : false;
-    const Family = typeof Data.Payload.Family === 'string' && Data.Payload.Family.trim().length > 0 ? Data.Payload.Family : false;
-    const FatherName = typeof Data.Payload.FatherName === 'string' && Data.Payload.FatherName.trim().length > 0 ? Data.Payload.FatherName : false;
-    const Password = typeof Data.Payload.Password === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password : false;
-    const NationalCode = typeof Data.Payload.NationalCode === 'string' && Data.Payload.NationalCode.trim().length === 10 ? Data.Payload.NationalCode : false;
-    const Gender = typeof Data.Payload.Gender === 'number' && (Data.Payload.Gender === 1 || Data.Payload.Gender === 2) ? Data.Payload.Gender : false;
-    const Address = typeof Data.Payload.Address === 'string' && Data.Payload.Address.trim().length > 0 ? Data.Payload.Address : false;
-
-    if (Phone)
+    let object =
     {
-        if (Name || Family || FatherName || Password || NationalCode || Gender || Address)
-        {
-            // Get the session from the header
-            const SessionID = typeof Data.Headers.session === 'string' ? Data.Headers.session : false;
-
-            // Verify that the given session is valid for the phone number
-            Session.Verify(SessionID, Phone, SessionIsValid =>
-            {
-                if (SessionIsValid)
-                {
-                    Database.Read('Accounts', Phone, (RError, AccountData) =>
-                    {
-                        if (!RError && AccountData)
-                        {
-                            if (Name)
-                                AccountData.Name = Name;
-                            if (Family)
-                                AccountData.Family = Family;
-                            if (FatherName)
-                                AccountData.FatherName = FatherName;
-                            if (Password)
-                                AccountData.SHAPassword = Helper.Hash(Password);
-                            if (NationalCode)
-                                AccountData.NationalCode = NationalCode;
-                            if (Gender)
-                                AccountData.Gender = Gender;
-                            if (Address)
-                                AccountData.Address = Address;
-
-                            AccountData.UpdatedAt = Date.now();
-
-                            // Store the new updates
-                            Database.Update('Accounts', Phone, AccountData, UError =>
-                            {
-                                if (!UError)
-                                    Callback(200, { Result: 1 });
-                                else
-                                    Callback(500, { Result: 2 });
-                            });
-                        }
-                        else
-                            Callback(400, { Result: 3 });
-                    });
-                }
-                else
-                    Callback(403, { Result: 4 });
-            });
-        }
-        else
-            Callback(400, { Result: 5 });
-    }
-    else
-        Callback(400, { Result: 6 });
+        name: Data.Payload.name,
+        family: Data.Payload.family,
+        fatherName: Data.Payload.fatherName,
+        phone: Data.Payload.phone,
+        password: Data.Payload.password,
+        nationalCode: Data.Payload.nationalCode,
+        gender: Data.Payload.gender,
+        address: Data.Payload.address,
+        serial: Data.Payload.serial,
+        image: Data.Payload.image
+    };
 };
 
 /**
@@ -271,74 +231,37 @@ Account.PUT = (Data, Callback) =>
 
 Account.DELETE = (Data, Callback) =>
 {
-    // Check for required field
-    const Phone = typeof Data.QueryString.Phone === 'string' && Data.QueryString.Phone.trim().length === 11 ? Data.QueryString.Phone : false;
+    let phone = Data.QueryString.phone;
+    let sessionID = Data.Headers.session;
 
-    if (Phone)
+    DB.collection('sessions').find({ sessionID }).limit(1).toArray((error, result) =>
     {
-        // Get the session from the header
-        const SessionID = typeof Data.Headers.session === 'string' ? Data.Headers.session : false;
+        if (error)
+            return Callback(500);
 
-        // Verify that the given session is valid for the phone number
-        Session.Verify(SessionID, Phone, SessionIsValid =>
+        if (typeof sessionID === 'undefined' || sessionID.trim().length !== 50)
+            return Callback(404, { Result: 1 });
+
+        if (result[0].expire < Date.now())
+            return Callback(400, { Result: 2 });
+
+        if (result[0].phone !== phone)
+            return Callback(400, { Result: 3 });
+
+        DB.collection('accounts').find({ phone }).limit(1).project({ password: 0 }).toArray((error1, result1) =>
         {
-            if (SessionIsValid)
+            if (error1)
+                return Callback(500, error1);
+
+            DB.collection('accounts').deleteOne({ phone }, error2 =>
             {
-                Database.Read('Accounts', Phone, (RError, AccountData) =>
-                {
-                    if (!RError && AccountData)
-                    {
-                        Database.Delete('Accounts', Phone, DError =>
-                        {
-                            if (!DError)
-                            {
-                                // Delete each of the checks associated with the account
-                                const AccountChecks = typeof AccountData.Checks === 'object' && AccountData.Checks instanceof Array ? AccountData.Checks : [];
-                                let ChecksToDelete = AccountChecks.length;
+                if (error2)
+                    return Callback(500);
 
-                                if (ChecksToDelete > 0)
-                                {
-                                    let ChecksDeleted = 0;
-                                    let DeletionErrors = false;
-
-                                    // Loop through the checks
-                                    AccountChecks.forEach(CheckID =>
-                                    {
-                                        // Delete the check
-                                        Database.Delete('Checks', CheckID, DError =>
-                                        {
-                                            if (DError)
-                                                DeletionErrors = true;
-
-                                            ChecksDeleted++;
-
-                                            if (ChecksDeleted === ChecksToDelete)
-                                            {
-                                                if (!DeletionErrors)
-                                                    Callback(200);
-                                                else
-                                                    Callback(500);
-                                            }
-                                        });
-                                    });
-                                }
-                                else
-                                    Callback(200);
-                            }
-                            else
-                                Callback(500, { Result: 2 });
-                        });
-                    }
-                    else
-                        Callback(404, { Result: 3 });
-                });
-            }
-            else
-                Callback(403, { Result: 4 });
+                return Callback(200);
+            });
         });
-    }
-    else
-        Callback(400, { Result: 5 });
+    });
 };
 
 module.exports = Account;

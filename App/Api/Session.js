@@ -1,5 +1,4 @@
 // Core
-const Database = require('./../Core/Database');
 const Helper = require('./../Core/Helper');
 
 // Container for the session submethods
@@ -26,13 +25,9 @@ Session.Main = (Data, Callback) =>
  *
  * @var {string} Phone
  * @var {string} Password
- * @var {string} Serial -- Header
  *
- * @description Result: 1 >> Could not create the new session
- *              Result: 2 >> The information entered is not correct (Password)
- *              Result: 3 >> The information entered is not correct (Account)
- *              Result: 4 >> Missing required fields
-*               Result: 5 >> Missing required serial in header, or serial is invalid
+ * @description Result: 1 >> The information entered is not correct (Phone, Password)
+ *              Result: 2 >> Session was successfully created
  *
  *              StatusCode = 200 OK, 400 Bad Request, 500 Internal Server Error
  *
@@ -40,39 +35,27 @@ Session.Main = (Data, Callback) =>
 
 Session.POST = (Data, Callback) =>
 {
-    const Phone = typeof Data.Payload.Phone === 'string' && Data.Payload.Phone.trim().length === 11 ? Data.Payload.Phone : false;
-    const Password = typeof Data.Payload.Password === 'string' && Data.Payload.Password.trim().length > 8 ? Data.Payload.Password : false;
+    let phone = Data.Payload.phone;
+    let password = Data.Payload.password;
 
-    if (Phone && Password)
+    DB.collection('accounts').find({ phone, password: Helper.Hash(password) }).limit(1).project({ _id: 1 }).toArray((error, result) =>
     {
-        Database.Read('Accounts', Phone, (RError, AccountData) =>
+        if (error)
+            return Callback(500);
+
+        if (typeof result[0] === 'undefined')
+            return Callback(400, { Result: 1 });
+
+        let SessionObject = { sessionID: Helper.RandomString(50), phone, expire: Date.now() + 1000 * 60 * 60 * 24 };
+
+        DB.collection('sessions').insertOne({ ...SessionObject }, error1 =>
         {
-            if (!RError && AccountData)
-            {
-                let SHAPassword = Helper.Hash(Password);
+            if (error1)
+                return Callback(500);
 
-                if (SHAPassword === AccountData.SHAPassword)
-                {
-                    let SessionObject = { SessionID: Helper.RandomString(20), Phone, Expire: Date.now() + 1000 * 60 * 60 * 24 };
-
-                    // Store the session
-                    Database.Create('Sessions', SessionObject.SessionID, SessionObject, CError =>
-                    {
-                        if (!CError)
-                            Callback(200, SessionObject);
-                        else
-                            Callback(500, { Result: 1 });
-                    });
-                }
-                else
-                    Callback(400, { Result: 2 });
-            }
-            else
-                Callback(400, { Result: 3 });
+            return Callback(200, { Result: 2 });
         });
-    }
-    else
-        Callback(400, { Result: 4 });
+    });
 };
 
 /**
@@ -83,10 +66,9 @@ Session.POST = (Data, Callback) =>
  * @param {Number} Callback.StatusCode
  * @param {object} Callback.Payload
  *
- * @var {string} Phone
+ * @var {string} phone
  *
  * @description Result: 1 >> Session not found
- *              Result: 2 >> Missing required fields
  *
  *              StatusCode = 200 OK, 400 Bad Request, 404 Page not found
  *
@@ -94,20 +76,18 @@ Session.POST = (Data, Callback) =>
 
 Session.GET = (Data, Callback) =>
 {
-    const SessionID = typeof Data.QueryString.SessionID === 'string' && Data.QueryString.SessionID.trim().length === 20 ? Data.QueryString.SessionID : false;
+    const sessionID = Data.QueryString.sessionID;
 
-    if (SessionID)
+    DB.collection('sessions').find({ sessionID }).limit(1).toArray((error, result) =>
     {
-        Database.Read('Sessions', SessionID, (RError, SessionData) =>
-        {
-            if (!RError && SessionData)
-                Callback(200, SessionData);
-            else
-                Callback(404, { Result: 1 });
-        });
-    }
-    else
-        Callback(400, { Result: 2 });
+        if (error)
+            return Callback(500);
+
+        if (typeof sessionID === 'undefined' || sessionID.trim().length !== 50)
+            return Callback(400, { Result: 1 });
+
+        return Callback(200, result[0]);
+    });
 };
 
 /**
@@ -118,13 +98,12 @@ Session.GET = (Data, Callback) =>
  * @param {Number} Callback.StatusCode
  * @param {object} Callback.Payload
  *
- * @var {string} SessionID
- * @var {string} Extend
+ * @var {string} sessionID
+ * @var {string} extend
  *
- * @description Result: 1 >> Could not update the session expration
+ * @description Result: 1 >> Session not found
+ *              Result: 2 >> Missing required fields
  *              Result: 2 >> The session has already expired
- *              Result: 3 >> Session not found
- *              Result: 4 >> Missing required fields
  *
  *              StatusCode = 200 OK, 400 Bad Request, 500 Internal Server Error
  *
@@ -132,37 +111,31 @@ Session.GET = (Data, Callback) =>
 
 Session.PUT = (Data, Callback) =>
 {
-    const SessionID = typeof Data.Payload.SessionID === 'string' && Data.Payload.SessionID.trim().length === 20 ? Data.Payload.SessionID : false;
-    const Extend = !!(typeof Data.Payload.Extend === 'boolean' && Data.Payload.Extend === true);
+    const sessionID = Data.Payload.sessionID;
+    const extend = Data.Payload.extend;
 
-    if (SessionID && Extend)
+    DB.collection('sessions').find({ sessionID }).limit(1).project({ _id: 1 }).toArray((error, result) =>
     {
-        Database.Read('Sessions', SessionID, (RError, SessionData) =>
-        {
-            if (!RError && SessionData)
-            {
-                if (SessionData.Expire > Date.now())
-                {
-                    SessionData.Expire = Date.now() + 1000 * 60 * 60 * 24;
+        if (error)
+            return Callback(500);
 
-                    // Store the new update
-                    Database.Update('Sessions', SessionID, SessionData, UError =>
-                    {
-                        if (!UError)
-                            Callback(200, SessionData);
-                        else
-                            Callback(500, { Result: 1 });
-                    });
-                }
-                else
-                    Callback(400, { Result: 2 });
-            }
-            else
-                Callback(400, { Result: 3 });
+        if (typeof sessionID === 'undefined' || sessionID.trim().length !== 50)
+            return Callback(404, { Result: 1 });
+
+        if (typeof extend === 'undefined' || typeof extend !== 'boolean' || extend === false)
+            return Callback(400, { Result: 2 });
+
+        if (result[0].expire < Date.now())
+            return Callback(400, { Result: 3 });
+
+        DB.collection('sessions').updateOne({ sessionID }, { $set: { expire: Date.now() + 1000 * 60 * 60 * 24 * 6 } }, error1 =>
+        {
+            if (error1)
+                return Callback(500);
+
+            return Callback(200);
         });
-    }
-    else
-        Callback(400, { Result: 4 });
+    });
 };
 
 /**
@@ -173,12 +146,9 @@ Session.PUT = (Data, Callback) =>
  * @param {Number} Callback.StatusCode
  * @param {object} Callback.Payload
  *
- * @var {string} SessionID
+ * @var {string} sessionID
  *
- * @description Result: 1 >> Session was successfully deleted
- *              Result: 2 >> Could not delete the session
- *              Result: 3 >> Session not found
- *              Result: 4 >> Missing required fields
+ * @description Result: 1 >> Session not found
  *
  *              StatusCode = 200 OK, 400 Bad Request, 404 Page not found, 500 Internal Server Error
  *
@@ -186,54 +156,23 @@ Session.PUT = (Data, Callback) =>
 
 Session.DELETE = (Data, Callback) =>
 {
-    const SessionID = typeof Data.QueryString.SessionID === 'string' && Data.QueryString.SessionID.trim().length === 20 ? Data.QueryString.SessionID : false;
+    const sessionID = Data.QueryString.sessionID;
 
-    if (SessionID)
+    DB.collection('sessions').find({ sessionID }).limit(1).project({ _id: 1 }).toArray((error, result) =>
     {
-        Database.Read('Sessions', SessionID, (RError, SessionData) =>
+        if (error)
+            return Callback(500);
+
+        if (typeof sessionID === 'undefined' || sessionID.trim().length !== 50)
+            return Callback(404, { Result: 1 });
+
+        DB.collection('sessions').deleteOne({ sessionID }, error1 =>
         {
-            if (!RError && SessionData)
-            {
-                Database.Delete('Sessions', SessionID, DError =>
-                {
-                    if (!DError)
-                        Callback(200, { Result: 1 });
-                    else
-                        Callback(500, { Result: 2 });
-                });
-            }
-            else
-                Callback(404, { Result: 3 });
+            if (error1)
+                return Callback(500);
+
+            return Callback(200);
         });
-    }
-    else
-        Callback(400, { Result: 4 });
-};
-
-/**
- *
- * @description Verify session, If a given session id is currently valid for a given account
- *
- * @param {string} SessionID
- * @param {Number} Phone
- * @param {object} Callback - True, False
- *
- */
-
-Session.Verify = (SessionID, Phone, Callback) =>
-{
-    Database.Read('Sessions', SessionID, (RError, SessionData) =>
-    {
-        if (!RError && SessionData)
-        {
-            // Check that the session is for the given account and not expired
-            if (SessionData.Phone === Phone && SessionData.Expire > Date.now())
-                Callback(true);
-            else
-                Callback(false);
-        }
-        else
-            Callback(false);
     });
 };
 
