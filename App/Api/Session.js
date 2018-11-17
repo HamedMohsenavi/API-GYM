@@ -27,7 +27,8 @@ Session.Main = (Data, Callback) =>
  * @var {string} Password
  *
  * @description Result: 1 >> The information entered is not correct (Phone, Password)
- *              Result: 2 >> Session was successfully created
+ *              Result: 2 >> Your account is not active
+ *              Result: 3 >> Serial is not match
  *
  *              StatusCode = 200 OK, 400 Bad Request, 500 Internal Server Error
  *
@@ -37,14 +38,21 @@ Session.POST = (Data, Callback) =>
 {
     let phone = Data.Payload.phone;
     let password = Data.Payload.password;
+    let serial = Data.Payload.serial;
 
-    DB.collection('accounts').find({ phone, password: Helper.Hash(password) }).limit(1).project({ _id: 1 }).toArray((error, result) =>
+    DB.collection('accounts').find({ phone, password: Helper.Hash(password) }).limit(1).toArray((error, result) =>
     {
         if (error)
             return Callback(500);
 
         if (typeof result[0] === 'undefined')
             return Callback(400, { Result: 1 });
+
+        if (result[0].active === false)
+            return Callback(400, { Result: 2 });
+
+        if (result[0].serial !== serial)
+            return Callback(400, { Result: 3 });
 
         let SessionObject = { sessionID: Helper.RandomString(50), phone, expire: Date.now() + 1000 * 60 * 60 * 24 };
 
@@ -53,7 +61,7 @@ Session.POST = (Data, Callback) =>
             if (error1)
                 return Callback(500);
 
-            return Callback(200, { Result: 2 });
+            return Callback(200);
         });
     });
 };

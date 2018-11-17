@@ -66,7 +66,8 @@ Account.POST = (Data, Callback) =>
         gender: Data.Payload.gender,
         address: Data.Payload.address,
         serial: Data.Payload.serial,
-        image: Data.Payload.image
+        image: Data.Payload.image,
+        active: false
     };
 
     DB.collection('accounts').find({ }).toArray((error, result) =>
