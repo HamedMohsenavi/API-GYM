@@ -46,6 +46,8 @@ Account.Main = (Data, Callback) =>
  *              Result: 10 >> serial (undefined)
  *              Result: 11 >> Could not create the new account
  *              Result: 12 >> Account was successfully created
+ *              Result: 13 >> A account with that nationalCode already exists
+ *              Result: 14 >> A account with that serial already exists
  *
  *              StatusCode = 200 OK, 400 Bad Request, 500 Internal Server Error
  *
@@ -67,13 +69,25 @@ Account.POST = (Data, Callback) =>
         image: Data.Payload.image
     };
 
-    DB.collection('accounts').find({ phone: object.phone }).limit(1).project({ _id: 1 }).toArray((error, result) =>
+    DB.collection('accounts').find({ }).toArray((error, result) =>
     {
         if (error)
             return Callback(500);
 
-        if (result[0])
+        let phone = result.find(res => res.phone === object.phone);
+
+        if (result.indexOf(phone) > -1)
             return Callback(400, { Result: 1 });
+
+        let nationalCode = result.find(res => res.nationalCode === object.nationalCode);
+
+        if (result.indexOf(nationalCode) > -1)
+            return Callback(400, { Result: 13 });
+
+        let serial = result.find(res => res.serial === object.serial);
+
+        if (result.indexOf(serial) > -1)
+            return Callback(400, { Result: 14 });
 
         if (typeof object.name === 'undefined' || object.name.trim().length < 2)
             return Callback(400, { Result: 2 });
@@ -84,7 +98,7 @@ Account.POST = (Data, Callback) =>
         if (typeof object.fatherName === 'undefined' || object.fatherName.trim().length < 2)
             return Callback(400, { Result: 4 });
 
-        if (typeof object.phone === 'undefined' || object.phone.trim().length !== 11)
+        if (typeof object.phone === 'undefined' || object.phone.trim().length !== 13)
             return Callback(400, { Result: 5 });
 
         if (typeof object.password === 'undefined' || object.password.trim().length < 8)
