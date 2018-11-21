@@ -14,7 +14,7 @@ Gym.Main = (Data, Callback) =>
 
 /**
  *
- * @description Create Account
+ * @description Create Gym
  *
  * @param {object} Data
  * @param {Number} Callback.StatusCode
