@@ -48,6 +48,7 @@ Account.Main = (Data, Callback) =>
  *              Result: 12 >> Account was successfully created
  *              Result: 13 >> A account with that nationalCode already exists
  *              Result: 14 >> A account with that serial already exists
+ *              Result: 14 >> image (undefined)
  *
  *              StatusCode = 200 OK, 400 Bad Request, 500 Internal Server Error
  *
@@ -67,7 +68,8 @@ Account.POST = (Data, Callback) =>
         address: Data.Payload.address,
         serial: Data.Payload.serial,
         image: Data.Payload.image,
-        active: false
+        active: false,
+        gym: 0
     };
 
     DB.collection('accounts').find({ }).toArray((error, result) =>
@@ -117,7 +119,8 @@ Account.POST = (Data, Callback) =>
         if (typeof object.serial === 'undefined' || object.serial.trim().length < 2)
             return Callback(400, { Result: 10 });
 
-        // @TODO IMAGE
+        if (typeof object.serial === 'undefined' || object.serial.trim().length < 2)
+            return Callback(400, { Result: 15 });
 
         DB.collection('accounts').insertOne({ ...object, password: Helper.Hash(object.password) }, error1 =>
         {

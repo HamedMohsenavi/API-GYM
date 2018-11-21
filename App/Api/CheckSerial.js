@@ -34,7 +34,7 @@ CheckSerial.POST = (Data, Callback) =>
 {
     let serial = Data.Payload.serial;
 
-    DB.collection('accounts').find({ serial }).toArray((error, result) =>
+    DB.collection('accounts').find({ serial }).limit(1).toArray((error, result) =>
     {
         if (error)
             return Callback(500);

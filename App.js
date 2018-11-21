@@ -99,9 +99,6 @@ MongoDB.MongoClient.connect(`mongodb://127.0.0.1:27017/gym`,
                 Response.setHeader('Content-Type', 'application/json');
                 Response.writeHead(StatusCode);
                 Response.end(PayloadString);
-
-                // Log the response
-                console.log(StatusCode, Payload, PayloadString);
             });
         });
     };
