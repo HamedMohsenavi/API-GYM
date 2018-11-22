@@ -56,12 +56,12 @@ Session.POST = (Data, Callback) =>
 
         let SessionObject = { sessionID: Helper.RandomString(50), phone, expire: Date.now() + 1000 * 60 * 60 * 24 };
 
-        DB.collection('sessions').insertOne({ ...SessionObject }, error1 =>
+        DB.collection('sessions').insertOne({ ...SessionObject }, (error1, result1) =>
         {
             if (error1)
                 return Callback(500);
 
-            return Callback(200);
+            return Callback(200, { Result: result1.ops[0].sessionID });
         });
     });
 };
