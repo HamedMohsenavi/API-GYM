@@ -153,7 +153,7 @@ Account.POST = (Data, Callback) =>
 
 Account.GET = (Data, Callback) =>
 {
-    let phone = Data.QueryString.phone;
+    let phone = Data.Headers.phone;
     let sessionID = Data.Headers.session;
 
     DB.collection('sessions').find({ sessionID }).limit(1).toArray((error, result) =>
@@ -170,12 +170,22 @@ Account.GET = (Data, Callback) =>
         if (result[0].phone !== phone)
             return Callback(400, { Result: 3 });
 
-        DB.collection('accounts').find({ phone }).limit(1).project({ password: 0 }).toArray((error1, result1) =>
+        DB.collection('accounts').find({ phone }).limit(1).project({ _id: 0, name: 1, family: 1, image: 1, gym: 1 }).toArray((error1, result1) =>
         {
             if (error1)
                 return Callback(500, error1);
 
-            return Callback(200, result1[0]);
+            if (result1[0].gym === 0)
+                return Callback(200, result1[0]);
+
+            DB.collection('gym').find({ _id: MongoID(result1[0].gym) }).limit(1).project({ _id: 0 }).toArray((error2, result2) =>
+            {
+                if (error2)
+                    return Callback(500, error2);
+
+                result1[0].gym = result2[0].name;
+                return Callback(200, result1[0]);
+            });
         });
     });
 };
